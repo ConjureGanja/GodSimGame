@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniSim v3.0: Rise of Civilizations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; user-select: none; background-color: #0f172a; color: #cbd5e1; }
+        canvas { image-rendering: pixelated; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        
+        /* Custom UI Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        
+        .tool-btn { transition: all 0.1s; }
+        .tool-btn:active { transform: scale(0.95); }
+        .tool-btn.active { ring: 2px solid #fff; box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); z-index: 10; }
+
+        /* Floating text animation */
+        @keyframes floatUp { 0% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(-20px); } }
+        .floater { position: absolute; animation: floatUp 1s forwards; pointer-events: none; font-weight: bold; font-size: 10px; text-shadow: 1px 1px 0 #000; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div class="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 z-20 shadow-lg">
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">OmniSim v3</h1>
+            
+            <div class="flex gap-1 text-xs font-mono bg-slate-800 p-1 rounded border border-slate-700">
+                <div class="px-2 py-1 border-r border-slate-700">
+                    <span class="text-slate-500 block text-[9px]">POPULATION</span>
+                    <span class="text-blue-400 font-bold text-base" id="ui-pop">0</span>
+                </div>
+                <div class="px-2 py-1 border-r border-slate-700">
+                    <span class="text-slate-500 block text-[9px]">FOOD</span>
+                    <span class="text-green-400 font-bold text-base" id="ui-food">0</span>
+                </div>
+                <div class="px-2 py-1 border-r border-slate-700">
+                    <span class="text-slate-500 block text-[9px]">HOUSES</span>
+                    <span class="text-yellow-600 font-bold text-base" id="ui-houses">0</span>
+                </div>
+                 <div class="px-2 py-1">
+                    <span class="text-slate-500 block text-[9px]">YEAR</span>
+                    <span class="text-slate-300 font-bold text-base" id="ui-year">1</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button id="btn-pause" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold border border-slate-600">PAUSE</button>
+            <div class="flex bg-slate-800 rounded border border-slate-700 p-0.5">
+                <button onclick="setSpeed(1)" class="speed-btn px-2 py-1 text-xs rounded hover:bg-slate-700" id="spd-1">1x</button>
+                <button onclick="setSpeed(5)" class="speed-btn px-2 py-1 text-xs rounded hover:bg-slate-700" id="spd-5">5x</button>
+                <button onclick="setSpeed(20)" class="speed-btn px-2 py-1 text-xs rounded hover:bg-slate-700" id="spd-20">MAX</button>
+            </div>
+            <button onclick="resetSim()" class="ml-2 px-3 py-1 bg-red-900/50 hover:bg-red-800 text-red-200 rounded text-xs border border-red-800">RESET</button>
+        </div>
+    </div>
+
+    <div class="flex-1 flex overflow-hidden">
+        <div class="w-16 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-2 gap-2 overflow-y-auto shrink-0 z-10">
+            
+            <div class="text-[9px] text-slate-500 font-bold mt-2">NATURE</div>
+            <button class="tool-btn w-10 h-10 bg-emerald-800 rounded text-lg active" onclick="setTool('forest')" title="Plant Forest">🌲</button>
+            <button class="tool-btn w-10 h-10 bg-blue-700 rounded text-lg" onclick="setTool('water')" title="Water/River">💧</button>
+            <button class="tool-btn w-10 h-10 bg-amber-700 rounded text-lg" onclick="setTool('land')" title="Land/Sand">🏜️</button>
+            <button class="tool-btn w-10 h-10 bg-slate-600 rounded text-lg" onclick="setTool('mountain')" title="Mountain Wall">⛰️</button>
+
+            <div class="w-8 h-px bg-slate-700 my-1"></div>
+            <div class="text-[9px] text-slate-500 font-bold">LIFE</div>
+            <button class="tool-btn w-10 h-10 bg-blue-500 rounded text-lg" onclick="setTool('human')" title="Spawn Human">🧑</button>
+            <button class="tool-btn w-10 h-10 bg-pink-600 rounded text-lg" onclick="setTool('berry')" title="Plant Food">🍒</button>
+            <button class="tool-btn w-10 h-10 bg-yellow-500 rounded text-lg" onclick="setTool('bless')" title="Bless (Heal/Feed)">✨</button>
+
+            <div class="w-8 h-px bg-slate-700 my-1"></div>
+            <div class="text-[9px] text-slate-500 font-bold">CHAOS</div>
+            <button class="tool-btn w-10 h-10 bg-red-800 rounded text-lg" onclick="setTool('demon')" title="Spawn Demon">👹</button>
+            <button class="tool-btn w-10 h-10 bg-orange-600 rounded text-lg" onclick="setTool('fire')" title="Fire">🔥</button>
+            <button class="tool-btn w-10 h-10 bg-red-600 rounded text-lg" onclick="setTool('meteor')" title="Meteor">☄️</button>
+        </div>
+
+        <div id="canvas-wrapper" class="flex-1 bg-black relative flex items-center justify-center overflow-hidden cursor-crosshair">
+            <canvas id="sim-canvas"></canvas>
+            <div id="cursor-info" class="absolute bottom-2 left-2 text-xs bg-black/50 p-2 rounded pointer-events-none"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & CONFIG ---
+        const C = document.getElementById('sim-canvas');
+        const CTX = C.getContext('2d', { alpha: false });
+        const W = 160; // Grid Width
+        const H = 100; // Grid Height
+        const TILE = 8; // Pixel size per tile
+
+        const TILES = {
+            DEEP_WATER: 0, WATER: 1, SAND: 2, GRASS: 3, FOREST: 4, MOUNTAIN: 5,
+            FARM_SEEDED: 10, FARM_GROWING: 11, FARM_RIPE: 12,
+            HOUSE: 20, CASTLE: 21,
+            FIRE: 90, ASH: 91, BERRY: 99
+        };
+
+        const COLORS = {
+            0: '#0f172a', 1: '#3b82f6', 2: '#fde68a', 3: '#22c55e', 4: '#14532d', 5: '#334155',
+            10: '#713f12', 11: '#84cc16', 12: '#facc15', // Farm Stages
+            20: '#78350f', 21: '#94a3b8', // Buildings
+            90: '#ef4444', 91: '#525252', 99: '#db2777' // Misc
+        };
+
+        const PASSABLE = [2, 3, 4, 10, 11, 12, 20, 21, 91, 99]; // Land
+        const SLOW_PASSABLE = [1]; // Shallow water
+
+        // --- STATE ---
+        let grid = [];
+        let agents = [];
+        let particles = [];
+        let tick = 0;
+        let speed = 1;
+        let paused = false;
+        let currentTool = 'forest';
+        let isMouseDown = false;
+        let mousePos = {x:0, y:0};
+
+        // --- INIT ---
+        function init() {
+            // Setup Canvas
+            const container = document.getElementById('canvas-wrapper');
+            C.width = W * TILE;
+            C.height = H * TILE;
+            
+            // Generate Map
+            generateMap();
+
+            // Initial Spawn
+            for(let i=0; i<10; i++) spawnUnit('human', W/2 + (Math.random()*10-5), H/2 + (Math.random()*10-5));
+
+            // Start Loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        function generateMap() {
+            grid = [];
+            for(let y=0; y<H; y++) {
+                let row = [];
+                for(let x=0; x<W; x++) {
+                    // Simple radial island generation
+                    let dx = x - W/2;
+                    let dy = y - H/2;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    let noise = Math.sin(x/10) * Math.cos(y/10) + Math.random()*0.5;
+                    
+                    let t = TILES.DEEP_WATER;
+                    if(dist < 55 + noise*10) t = TILES.WATER;
+                    if(dist < 50 + noise*10) t = TILES.SAND;
+                    if(dist < 45 + noise*10) t = TILES.GRASS;
+                    if(dist < 35 + noise*10 && Math.random() > 0.3) t = TILES.FOREST;
+                    if(dist < 10 + noise*5) t = TILES.MOUNTAIN; // Central peak
+                    
+                    if(t === TILES.GRASS && Math.random() < 0.05) t = TILES.BERRY;
+
+                    row.push(t);
+                }
+                grid.push(row);
+            }
+        }
+
+        // --- CLASSES ---
+        class Agent {
+            constructor(x, y, type) {
+                this.x = x; this.y = y;
+                this.type = type;
+                this.alive = true;
+                this.dx = 0; this.dy = 0;
+                this.age = 0;
+            }
+            
+            move(speedFactor) {
+                // Apply Velocity
+                let nextX = this.x + this.dx * speedFactor;
+                let nextY = this.y + this.dy * speedFactor;
+
+                // Collision Detection
+                if(this.canWalk(nextX, this.y)) this.x = nextX;
+                else this.dx *= -0.5; // Bounce/Slide
+
+                if(this.canWalk(this.x, nextY)) this.y = nextY;
+                else this.dy *= -0.5;
+
+                // Friction
+                this.dx *= 0.9;
+                this.dy *= 0.9;
+                
+                // Wandering
+                if(Math.random() < 0.1) {
+                    this.dx += (Math.random()-0.5) * 0.2;
+                    this.dy += (Math.random()-0.5) * 0.2;
+                }
+            }
+
+            canWalk(x, y) {
+                let tx = Math.floor(x);
+                let ty = Math.floor(y);
+                if(tx < 0 || tx >= W || ty < 0 || ty >= H) return false;
+                let t = grid[ty][tx];
+                // Slow down in water
+                if(SLOW_PASSABLE.includes(t)) return true; // Add drag logic elsewhere
+                if(t === TILES.DEEP_WATER || t === TILES.MOUNTAIN) return false;
+                return true;
+            }
+        }
+
+        class Human extends Agent {
+            constructor(x, y) {
+                super(x, y, 'human');
+                this.hunger = 80;
+                this.wood = 0;
+                this.state = 'idle';
+                this.lifeStage = 'adult'; // baby, adult, elder
+                this.maxAge = 3000 + Math.random()*1000;
+            }
+
+            update() {
+                this.age++;
+                
+                // --- Life Cycle ---
+                if(this.age < 500) this.lifeStage = 'baby';
+                else if (this.age > this.maxAge - 500) this.lifeStage = 'elder';
+                else this.lifeStage = 'adult';
+
+                if(this.age > this.maxAge) { this.alive = false; return; } // Die of old age
+
+                // Hunger Logic
+                let hungerRate = this.lifeStage === 'baby' ? 0.02 : 0.05;
+                this.hunger -= hungerRate;
+                if(this.hunger <= 0) { this.alive = false; spawnFloat(this.x, this.y, "💀", "red"); return; }
+
+                // --- AI BEHAVIOR ---
+                
+                // 1. Flee (Top Priority)
+                let enemy = findNearest(this, 'demon', 10);
+                if(enemy) {
+                    let ang = Math.atan2(this.y - enemy.y, this.x - enemy.x);
+                    this.dx += Math.cos(ang) * 0.5;
+                    this.dy += Math.sin(ang) * 0.5;
+                    this.move(1.0);
+                    return;
+                }
+
+                // 2. Eat (If Hungry)
+                if(this.hunger < 50) {
+                    // Search for food
+                    let food = findNearestTile(this, [TILES.BERRY, TILES.FARM_RIPE], 30);
+                    if(food) {
+                        this.walkTo(food.x, food.y);
+                        if(dist(this, food) < 1) {
+                            // Eat
+                            this.hunger = 100;
+                            if(grid[food.y][food.x] === TILES.BERRY) grid[food.y][food.x] = TILES.GRASS; // Consume berry
+                            if(grid[food.y][food.x] === TILES.FARM_RIPE) grid[food.y][food.x] = TILES.FARM_SEEDED; // Reset farm
+                            spawnFloat(this.x, this.y, "yum", "lime");
+                        }
+                    } else {
+                        // Panic wander
+                         this.move(0.5);
+                    }
+                    return;
+                }
+
+                // 3. Work (Adults Only)
+                if(this.lifeStage === 'adult') {
+                    // Farming
+                    let farm = findNearestTile(this, [TILES.FARM_SEEDED, TILES.FARM_GROWING], 10);
+                    if(!farm && Math.random() < 0.01 && this.wood > 5) {
+                        // Build new farm if near house
+                        let house = findNearestTile(this, [TILES.HOUSE], 10);
+                        if(house) {
+                            let tx = Math.floor(this.x + (Math.random()*6-3));
+                            let ty = Math.floor(this.y + (Math.random()*6-3));
+                            if(grid[ty] && grid[ty][tx] === TILES.GRASS) {
+                                grid[ty][tx] = TILES.FARM_SEEDED;
+                                this.wood -= 5;
+                            }
+                        }
+                    }
+
+                    // Wood Gathering
+                    if(this.wood < 20) {
+                        let tree = findNearestTile(this, [TILES.FOREST], 20);
+                        if(tree) {
+                            this.walkTo(tree.x, tree.y);
+                            if(dist(this, tree) < 1) {
+                                if(Math.random() < 0.1) {
+                                    grid[tree.y][tree.x] = TILES.GRASS;
+                                    this.wood += 10;
+                                    spawnFloat(this.x, this.y, "+wood", "brown");
+                                }
+                            }
+                        }
+                    } 
+                    // Building Houses
+                    else {
+                        // Check density
+                        let nearbyHouses = countTilesNear(this, [TILES.HOUSE, TILES.CASTLE], 15);
+                        
+                        if(nearbyHouses < 3) {
+                            // Build here
+                            let t = grid[Math.floor(this.y)][Math.floor(this.x)];
+                            if(t === TILES.GRASS) {
+                                grid[Math.floor(this.y)][Math.floor(this.x)] = TILES.HOUSE;
+                                this.wood -= 20;
+                                spawnFloat(this.x, this.y, "Build!", "gold");
+                            } else {
+                                this.move(0.2); // Move to find spot
+                            }
+                        } else {
+                            // Too crowded, migrate outwards
+                            let center = {x: W/2, y: H/2};
+                            let ang = Math.atan2(this.y - center.y, this.x - center.x);
+                            this.dx += Math.cos(ang) * 0.1;
+                            this.dy += Math.sin(ang) * 0.1;
+                            this.move(0.5);
+                        }
+                    }
+                    
+                    // Reproduction (If well fed, safe, and near house)
+                    if(this.hunger > 80 && Math.random() < 0.005) {
+                         let house = findNearestTile(this, [TILES.HOUSE, TILES.CASTLE], 5);
+                         if(house) {
+                             spawnUnit('human', this.x, this.y);
+                             this.hunger -= 20;
+                             spawnFloat(this.x, this.y, "Baby!", "pink");
+                         }
+                    }
+                } else {
+                    // Babies/Elders just wander near houses
+                     let house = findNearestTile(this, [TILES.HOUSE, TILES.CASTLE], 20);
+                     if(house) this.walkTo(house.x, house.y);
+                     else this.move(0.2);
+                }
+                
+                // Base move if no other action took place
+                this.move(this.lifeStage === 'baby' ? 0.2 : 0.4);
+            }
+
+            walkTo(tx, ty) {
+                let ang = Math.atan2(ty - this.y, tx - this.x);
+                this.dx += Math.cos(ang) * 0.1;
+                this.dy += Math.sin(ang) * 0.1;
+            }
+
+            draw() {
+                let size = this.lifeStage === 'baby' ? 2 : (this.lifeStage === 'elder' ? 3 : 3.5);
+                CTX.fillStyle = this.lifeStage === 'elder' ? '#94a3b8' : '#fca5a5';
+                if(this.hunger < 30) CTX.fillStyle = '#ef4444'; // Starving
+                
+                CTX.beginPath();
+                CTX.arc(this.x*TILE, this.y*TILE, size, 0, Math.PI*2);
+                CTX.fill();
+                
+                // Job/Status Indicator
+                if(this.lifeStage === 'adult') {
+                    CTX.fillStyle = this.wood > 0 ? '#78350f' : '#3b82f6'; // Brown=Builder, Blue=Idle
+                    CTX.fillRect(this.x*TILE - 1, this.y*TILE - 4, 2, 2);
+                }
+            }
+        }
+
+        class Demon extends Agent {
+            constructor(x, y) {
+                super(x, y, 'demon');
+                this.hp = 200;
+            }
+            update() {
+                let prey = findNearest(this, 'human', 20);
+                if(prey) {
+                    let ang = Math.atan2(prey.y - this.y, prey.x - this.x);
+                    this.dx += Math.cos(ang) * 0.2;
+                    this.dy += Math.sin(ang) * 0.2;
+                    if(dist(this, prey) < 1) {
+                        prey.hunger = -10; // Kill
+                        prey.alive = false;
+                        this.hp += 10;
+                        spawnFloat(prey.x, prey.y, "CRUNCH", "red");
+                    }
+                } else {
+                    // Burn stuff while walking
+                    if(Math.random() < 0.1) {
+                        let tx = Math.floor(this.x), ty = Math.floor(this.y);
+                        if(grid[ty][tx] === TILES.FOREST || grid[ty][tx] === TILES.HOUSE) grid[ty][tx] = TILES.FIRE;
+                    }
+                    this.move(0.3);
+                }
+                this.move(0.6);
+            }
+            draw() {
+                CTX.fillStyle = '#b91c1c';
+                CTX.beginPath();
+                CTX.arc(this.x*TILE, this.y*TILE, 4, 0, Math.PI*2);
+                CTX.fill();
+                // Horns
+                CTX.fillStyle = '#fef08a';
+                CTX.fillRect(this.x*TILE-3, this.y*TILE-5, 2, 3);
+                CTX.fillRect(this.x*TILE+1, this.y*TILE-5, 2, 3);
+            }
+        }
+
+        // --- ENGINE ---
+
+        function gameLoop() {
+            if(!paused) {
+                for(let i=0; i<speed; i++) {
+                    tick++;
+                    updateSimulation();
+                }
+            }
+            draw();
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateSimulation() {
+            // 1. Tile Updates (Random ticks)
+            for(let i=0; i<200; i++) {
+                let x = Math.floor(Math.random()*W);
+                let y = Math.floor(Math.random()*H);
+                let t = grid[y][x];
+
+                // Farming
+                if(t === TILES.FARM_SEEDED && Math.random() < 0.01) grid[y][x] = TILES.FARM_GROWING;
+                if(t === TILES.FARM_GROWING && Math.random() < 0.01) grid[y][x] = TILES.FARM_RIPE;
+
+                // Fire
+                if(t === TILES.FIRE) {
+                    if(Math.random() < 0.1) grid[y][x] = TILES.ASH;
+                    // Spread
+                    let n = getNeighbors(x, y);
+                    if(n) {
+                         let nt = grid[n.y][n.x];
+                         if((nt === TILES.FOREST || nt === TILES.HOUSE) && Math.random() < 0.2) grid[n.y][n.x] = TILES.FIRE;
+                    }
+                }
+                // Nature Regrowth
+                if(t === TILES.ASH && Math.random() < 0.01) grid[y][x] = TILES.GRASS;
+                if(t === TILES.GRASS && Math.random() < 0.001) grid[y][x] = TILES.FOREST;
+                if(t === TILES.GRASS && Math.random() < 0.001) grid[y][x] = TILES.BERRY;
+            }
+
+            // 2. Agents
+            agents = agents.filter(a => a.alive);
+            agents.forEach(a => a.update());
+
+            // 3. Particles/Effects
+            // (Simplified: just floats controlled by DOM)
+        }
+
+        function draw() {
+            CTX.fillStyle = '#0f172a';
+            CTX.fillRect(0,0,C.width, C.height);
+
+            // Draw Grid
+            for(let y=0; y<H; y++) {
+                for(let x=0; x<W; x++) {
+                    CTX.fillStyle = COLORS[grid[y][x]] || '#000';
+                    CTX.fillRect(x*TILE, y*TILE, TILE, TILE);
+                }
+            }
+
+            // Draw Agents
+            agents.forEach(a => a.draw());
+
+            // Cursor Highlight
+            let mx = Math.floor(mousePos.x);
+            let my = Math.floor(mousePos.y);
+            if(mx >=0 && mx < W && my >=0 && my < H) {
+                CTX.strokeStyle = 'white';
+                CTX.strokeRect(mx*TILE, my*TILE, TILE, TILE);
+            }
+        }
+
+        // --- TOOLS ---
+        
+        C.addEventListener('mousemove', e => {
+            let rect = C.getBoundingClientRect();
+            mousePos.x = (e.clientX - rect.left) / TILE;
+            mousePos.y = (e.clientY - rect.top) / TILE;
+            if(isMouseDown) useTool();
+        });
+        C.addEventListener('mousedown', () => { isMouseDown = true; useTool(); });
+        window.addEventListener('mouseup', () => isMouseDown = false);
+
+        function useTool() {
+            let x = Math.floor(mousePos.x);
+            let y = Math.floor(mousePos.y);
+            if(x < 0 || x >= W || y < 0 || y >= H) return;
+
+            if(currentTool === 'forest') grid[y][x] = TILES.FOREST;
+            if(currentTool === 'water') grid[y][x] = TILES.WATER;
+            if(currentTool === 'land') grid[y][x] = TILES.GRASS;
+            if(currentTool === 'mountain') grid[y][x] = TILES.MOUNTAIN;
+            if(currentTool === 'berry') grid[y][x] = TILES.BERRY;
+            if(currentTool === 'fire') grid[y][x] = TILES.FIRE;
+            
+            // Single-click tools (rate limited)
+            if(tick % 5 === 0) {
+                if(currentTool === 'human') spawnUnit('human', x, y);
+                if(currentTool === 'demon') spawnUnit('demon', x, y);
+                if(currentTool === 'meteor') {
+                    for(let dy=-2; dy<=2; dy++) for(let dx=-2; dx<=2; dx++) {
+                        if(grid[y+dy] && grid[y+dy][x+dx] !== undefined) grid[y+dy][x+dx] = TILES.ASH;
+                    }
+                    agents.forEach(a => { if(dist({x,y}, a) < 3) a.alive = false; });
+                }
+                if(currentTool === 'bless') {
+                    // Feed and Heal nearby humans
+                     agents.forEach(a => { 
+                         if(a.type === 'human' && dist({x,y}, a) < 5) {
+                             a.hunger = 100;
+                             spawnFloat(a.x, a.y, "Blessed!", "cyan");
+                         }
+                     });
+                     // Regrow plants
+                     for(let dy=-3; dy<=3; dy++) for(let dx=-3; dx<=3; dx++) {
+                         let ty = y+dy, tx = x+dx;
+                         if(grid[ty] && grid[ty][tx] === TILES.ASH) grid[ty][tx] = TILES.GRASS;
+                         if(grid[ty] && grid[ty][tx] === TILES.GRASS) grid[ty][tx] = TILES.FOREST;
+                     }
+                }
+            }
+        }
+
+        function setTool(t) {
+            currentTool = t;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`button[onclick="setTool('${t}')"]`).classList.add('active');
+        }
+
+        // --- HELPERS ---
+
+        function spawnUnit(type, x, y) {
+            if(type === 'human') agents.push(new Human(x, y));
+            if(type === 'demon') agents.push(new Demon(x, y));
+        }
+
+        function spawnFloat(x, y, text, color) {
+            const el = document.createElement('div');
+            el.className = 'floater';
+            el.style.left = (x * TILE + C.getBoundingClientRect().left) + 'px';
+            el.style.top = (y * TILE + C.getBoundingClientRect().top) + 'px';
+            el.style.color = color;
+            el.innerText = text;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function dist(a, b) { return Math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2); }
+
+        function findNearest(me, type, range) {
+            let close = null, min = range;
+            for(let a of agents) {
+                if(a.type === type && a !== me && a.alive) {
+                    let d = dist(me, a);
+                    if(d < min) { min = d; close = a; }
+                }
+            }
+            return close;
+        }
+
+        function findNearestTile(me, types, range) {
+            let ix = Math.floor(me.x), iy = Math.floor(me.y);
+            let r = Math.floor(range);
+            let close = null, min = range;
+            
+            for(let y = iy-r; y <= iy+r; y++) {
+                for(let x = ix-r; x <= ix+r; x++) {
+                    if(y<0||y>=H||x<0||x>=W) continue;
+                    if(types.includes(grid[y][x])) {
+                        let d = Math.sqrt((x-me.x)**2 + (y-me.y)**2);
+                        if(d < min) { min = d; close = {x:x+0.5, y:y+0.5}; }
+                    }
+                }
+            }
+            return close;
+        }
+
+        function countTilesNear(me, types, range) {
+            let count = 0;
+            let ix = Math.floor(me.x), iy = Math.floor(me.y);
+            let r = Math.floor(range);
+            for(let y = iy-r; y <= iy+r; y++) {
+                for(let x = ix-r; x <= ix+r; x++) {
+                    if(y>=0 && y<H && x>=0 && x<W && types.includes(grid[y][x])) count++;
+                }
+            }
+            return count;
+        }
+
+        function getNeighbors(x, y) {
+            let dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+            let d = dirs[Math.floor(Math.random()*4)];
+            let nx = x + d[0], ny = y + d[1];
+            if(nx >= 0 && nx < W && ny >= 0 && ny < H) return {x:nx, y:ny};
+            return null;
+        }
+
+        function updateUI() {
+            document.getElementById('ui-pop').innerText = agents.filter(a => a.type === 'human').length;
+            document.getElementById('ui-food').innerText = grid.flat().filter(t => t === TILES.BERRY || t === TILES.FARM_RIPE).length;
+            document.getElementById('ui-houses').innerText = grid.flat().filter(t => t === TILES.HOUSE).length;
+            if(tick % 60 === 0) document.getElementById('ui-year').innerText = Math.floor(tick / 60);
+        }
+
+        function setSpeed(s) {
+            speed = s;
+            document.querySelectorAll('.speed-btn').forEach(b => b.classList.replace('bg-blue-600', 'bg-transparent'));
+            document.getElementById(`spd-${s}`).classList.add('bg-blue-600');
+            document.getElementById(`spd-${s}`).classList.remove('bg-transparent');
+        }
+
+        function resetSim() {
+            agents = [];
+            generateMap();
+            // Start with a strong colony
+            for(let i=0; i<20; i++) spawnUnit('human', W/2 + (Math.random()*15-7.5), H/2 + (Math.random()*15-7.5));
+            tick = 0;
+        }
+
+        document.getElementById('btn-pause').onclick = () => {
+            paused = !paused;
+            document.getElementById('btn-pause').innerText = paused ? "RESUME" : "PAUSE";
+            document.getElementById('btn-pause').classList.toggle('bg-green-600');
+        };
+
+        // Run
+        window.onload = init;
+    </script>
+</body>
+</html>
