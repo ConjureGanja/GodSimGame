@@ -395,9 +395,16 @@
                         this._cachedPopulationAge = this.age;
                     }
                     let population = this._cachedPopulation;
-                    let temples = grid.flat().filter(t => t === TILES.TEMPLE).length;
-                    let shrines = grid.flat().filter(t => t === TILES.SHRINE).length;
-                    let statues = grid.flat().filter(t => t === TILES.STATUE).length;
+                    const flatGrid = grid.flat();
+                    let monumentCounts = flatGrid.reduce((acc, t) => {
+                        if (t === TILES.TEMPLE) acc.temples++;
+                        else if (t === TILES.SHRINE) acc.shrines++;
+                        else if (t === TILES.STATUE) acc.statues++;
+                        return acc;
+                    }, { temples: 0, shrines: 0, statues: 0 });
+                    let temples = monumentCounts.temples;
+                    let shrines = monumentCounts.shrines;
+                    let statues = monumentCounts.statues;
 
                     // Build Temple when pop > 15 and wood > 40
                     if(population > 15 && temples === 0 && this.wood > 40 && this.hunger > 60) {
