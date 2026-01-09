@@ -412,16 +412,20 @@
                         let ty = Math.floor(this.y);
                         const occupiedAtTile = agents.some(a =>
                             a.type === 'human' &&
-                            a.alive &&
-                            Math.floor(a.x) === tx &&
-                            Math.floor(a.y) === ty
-                        );
-                        if(grid[ty] && grid[ty][tx] === TILES.GRASS && !occupiedAtTile) {
-                            grid[ty][tx] = TILES.TEMPLE;
-                            this.wood -= 40;
-                            spawnFloat(this.x, this.y, "TEMPLE!", "gold");
-                            adjustKarma(1); // Small karma for autonomous temple-building
-                            return;
+                    // Build Temple: first at pop > 15 & wood > 40, later temples require more pop/wood and spacing
+                    if(population > 15 + temples * 5 && temples < 5 && this.wood > 40 + temples * 10 && this.hunger > 60) {
+                        // Avoid clustering temples too closely together
+                        let nearTemple = findNearestTile(this, [TILES.TEMPLE], 20);
+                        if(!nearTemple) {
+                            let tx = Math.floor(this.x);
+                            let ty = Math.floor(this.y);
+                            if(grid[ty] && grid[ty][tx] === TILES.GRASS) {
+                                grid[ty][tx] = TILES.TEMPLE;
+                                this.wood -= 40 + temples * 10;
+                                spawnFloat(this.x, this.y, "TEMPLE!", "gold");
+                                adjustKarma(5); // Building temples is good
+                                return;
+                            }
                         }
                     }
 
