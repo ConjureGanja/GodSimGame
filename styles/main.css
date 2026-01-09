@@ -1,0 +1,59 @@
+/* OmniSim v3 Styles */
+
+body {
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+    background-color: #0f172a;
+    color: #cbd5e1;
+}
+
+canvas {
+    image-rendering: pixelated;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+}
+
+/* Custom UI Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
+}
+
+/* Tool buttons */
+.tool-btn {
+    transition: all 0.1s;
+}
+
+.tool-btn:active {
+    transform: scale(0.95);
+}
+
+.tool-btn.active {
+    ring: 2px solid #fff;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+    z-index: 10;
+}
+
+/* Floating text animation */
+@keyframes floatUp {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+.floater {
+    position: absolute;
+    animation: floatUp 1s forwards;
+    pointer-events: none;
+    font-weight: bold;
+    font-size: 10px;
+    text-shadow: 1px 1px 0 #000;
+}
