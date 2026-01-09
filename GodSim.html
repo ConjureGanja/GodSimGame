@@ -669,17 +669,33 @@
                     if(t === TILES.TEMPLE) {
                         // Add glow effect to temples
                         CTX.fillStyle = '#fef08a';
-                        CTX.fillRect(x*TILE+2, y*TILE+1, 4, 3);
+                        // Use TILE-relative offsets so glow scales with tile size
+                        CTX.fillRect(
+                            x * TILE + TILE * 0.25,   // 2px when TILE = 8
+                            y * TILE + TILE * 0.125,  // 1px when TILE = 8
+                            TILE * 0.5,               // 4px when TILE = 8
+                            TILE * 0.375              // 3px when TILE = 8
+                        );
                     }
                     if(t === TILES.STATUE) {
                         // Add shine to statues
                         CTX.fillStyle = '#f3f4f6';
-                        CTX.fillRect(x*TILE+3, y*TILE+2, 2, 4);
+                        CTX.fillRect(
+                            x * TILE + TILE * 0.375,  // 3px when TILE = 8
+                            y * TILE + TILE * 0.25,   // 2px when TILE = 8
+                            TILE * 0.25,              // 2px when TILE = 8
+                            TILE * 0.5                // 4px when TILE = 8
+                        );
                     }
                     if(t === TILES.SHRINE) {
                         // Add glow to shrines
                         CTX.fillStyle = '#e9d5ff';
-                        CTX.fillRect(x*TILE+3, y*TILE+3, 2, 2);
+                        CTX.fillRect(
+                            x * TILE + TILE * 0.375,  // 3px when TILE = 8
+                            y * TILE + TILE * 0.375,  // 3px when TILE = 8
+                            TILE * 0.25,              // 2px when TILE = 8
+                            TILE * 0.25               // 2px when TILE = 8
+                        );
                     }
                 }
             }
