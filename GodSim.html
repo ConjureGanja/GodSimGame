@@ -692,10 +692,13 @@
                 CTX.lineWidth = 2;
                 CTX.strokeRect(mx*TILE, my*TILE, TILE, TILE);
 
-                // Outer glow
-                CTX.strokeStyle = karmaColor + '40'; // Semi-transparent
+                // Outer glow (semi-transparent using globalAlpha)
+                const previousAlpha = CTX.globalAlpha;
+                CTX.globalAlpha = 0.25;
+                CTX.strokeStyle = karmaColor;
                 CTX.lineWidth = 4;
                 CTX.strokeRect((mx-0.5)*TILE, (my-0.5)*TILE, TILE*2, TILE*2);
+                CTX.globalAlpha = previousAlpha;
                 CTX.lineWidth = 1; // Reset
             }
         }
