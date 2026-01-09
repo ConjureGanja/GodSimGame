@@ -385,7 +385,16 @@
                 // 3. Work (Adults Only)
                 if(this.lifeStage === 'adult') {
                     // Monument Building (Top Priority for civilization)
-                    let population = agents.filter(a => a.type === 'human' && a.alive).length;
+                    // Cache population per human and refresh periodically to avoid
+                    // filtering all agents on every adult update.
+                    const POPULATION_CACHE_INTERVAL = 60; // ticks between refreshes for this human
+                    if (this._cachedPopulation === undefined ||
+                        this._cachedPopulationAge === undefined ||
+                        (this.age - this._cachedPopulationAge) >= POPULATION_CACHE_INTERVAL) {
+                        this._cachedPopulation = agents.filter(a => a.type === 'human' && a.alive).length;
+                        this._cachedPopulationAge = this.age;
+                    }
+                    let population = this._cachedPopulation;
                     let temples = grid.flat().filter(t => t === TILES.TEMPLE).length;
                     let shrines = grid.flat().filter(t => t === TILES.SHRINE).length;
                     let statues = grid.flat().filter(t => t === TILES.STATUE).length;
