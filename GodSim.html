@@ -244,26 +244,14 @@
         }
 
         function updateKarmaEffects() {
-            // Karma affects available tools and game mechanics
-            // This will be called whenever karma changes
-
-            // Update tool availability based on karma
-            if(karma > 30) {
-                // Good god powers
-                if(!unlockedTools.includes('holyBlessing')) {
-                    unlockedTools.push('holyBlessing');
-                }
-            }
-
-            if(karma < -30) {
-                // Evil god powers
-                if(!unlockedTools.includes('plague')) {
-                    unlockedTools.push('plague');
-                }
-                if(!unlockedTools.includes('mindControl')) {
-                    unlockedTools.push('mindControl');
-                }
-            }
+            // Karma affects available tools and game mechanics.
+            // This will be called whenever karma changes.
+            //
+            // NOTE: Previously this function unlocked tools 'holyBlessing',
+            // 'plague', and 'mindControl', but those tools are not implemented
+            // in useTool. To avoid exposing unusable tools to players, the
+            // unlocking logic has been removed. Reintroduce tool unlocking here
+            // only after corresponding tool behavior is implemented.
         }
 
         function spawnPrayerParticle(x, y) {
