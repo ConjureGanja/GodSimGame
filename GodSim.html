@@ -420,7 +420,7 @@
                             grid[ty][tx] = TILES.TEMPLE;
                             this.wood -= 40;
                             spawnFloat(this.x, this.y, "TEMPLE!", "gold");
-                            adjustKarma(5); // Building temples is good
+                            adjustKarma(1); // Small karma for autonomous temple-building
                             return;
                         }
                     }
